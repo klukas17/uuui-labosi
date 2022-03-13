@@ -13,9 +13,8 @@
 
 /*
  * TODO:
- *      improve input reading
+ *      find all mistakes with autograder
  *      improve check-optimistic
- *      run autograder
  */
 
 std::string alg = "", ss = "", h = "";
@@ -28,7 +27,6 @@ std::map<std::string, std::vector<std::pair<std::string, double>>> successor_fun
 std::map<std::string, double> heuristic_function;
 
 std::map<std::string, double> distance;
-std::map<std::string, double> distances;
 
 void read_arguments(int argc, char* argv[]) {
     int index = 1;
@@ -65,9 +63,11 @@ void read_ss() {
     std::ifstream input(ss);
     std::string line;
     bool initial = false, goal = false;
-    int l = 2;
+
     for (;getline(input, line);) {
+
         if (line[0] == '#') continue;
+
         if (!initial) {
             initial_state = line;
             initial = true;
@@ -76,30 +76,31 @@ void read_ss() {
         else if (!goal) {
             std::istringstream iss(line);
             std::string s;
-            while (getline(iss, s, ' ')) goal_states.insert(s);
+            while (getline(iss, s, ' '))
+                goal_states.insert(s);
             goal = true;
             continue;
         }
+
         else {
-            std::string left_side, right_side, state, cost;
-            std::regex r1("([A-Za-zšđčćžŠĐČĆŽ0-9_]*):(.*)");
-            std::regex r2(" (([A-Za-zšđčćžŠĐČĆŽ0-9_]*),([0-9]*[\\.[0-9]+]?))(.*)");
-            std::cmatch match;
-            std::regex_match(const_cast<char*>(line.c_str()), match, r1);
-            left_side = match[1];
-            right_side = match[2];
+            std::string left_side, right_side;
+            int pos = line.find(':');
+            left_side = line.substr(0, pos);
             states.insert(left_side);
-            while (right_side != "") {
-                std::regex_match(const_cast<char*>(right_side.c_str()), match, r2);
-                state = match[2];
-                cost = match[3];
-                right_side = match[4];
+            right_side = line.substr(pos + 1, line.size() - pos);
+            if (right_side.size() > 0)
+                right_side = right_side.substr(1, right_side.size());
+            std::stringstream stream(right_side);
+            std::string segment;
+            while (getline(stream, segment, ' ')) {
+                std::string state, cost;
+                int breaking_point = segment.find(',');
+                state = segment.substr(0, breaking_point);
+                cost = segment.substr(breaking_point + 1, segment.size());
                 successor_function[left_side].push_back({state, std::stod(cost)});
             }
             std::sort(successor_function[left_side].begin(), successor_function[left_side].end(),
-                 [] (std::pair<std::string, double> i1, std::pair<std::string, double> i2) {return (i1.first < i2.first);});
-            l++;
-            if (l % 1000 == 0) std::cout << l << std::endl;
+                      [] (std::pair<std::string, double> i1, std::pair<std::string, double> i2) {return (i1.first < i2.first);});
         }
     }
 }
@@ -107,16 +108,13 @@ void read_ss() {
 void read_h() {
     std::ifstream input(h);
     std::string line;
-    int l = 0;
     for (;getline(input, line);) {
         if (line[0] == '#') continue;
-        std::regex r3("([A-Za-zšđčćžŠĐČĆŽ0-9_]*): ([0-9]*[\\.[0-9]+]?)");
-        std::cmatch match;
-        std::regex_match(const_cast<char*>(line.c_str()), match, r3);
-        std::string left_side = match[1], right_side = match[2];
+        std::string left_side, right_side;
+        int pos = line.find(':');
+        left_side = line.substr(0, pos);
+        right_side = line.substr(pos + 2, line.size() - pos);
         heuristic_function[left_side] = std::stod(right_side);
-        l++;
-        if (l % 1000 == 0) std::cout << l << std::endl;
     }
 }
 
@@ -292,6 +290,7 @@ void astar() {
             Node* m = new Node(u.first, n, n->cost + u.second);
             all_nodes.push_back(m);
             bool flag = false;
+            std::vector<Node*> to_delete;
             for (Node* m_ : closed) {
                 if (m_->state == m->state) {
                     if (m_->cost < m->cost) {
@@ -299,14 +298,17 @@ void astar() {
                         break;
                     }
                     else {
-                        closed.erase(m_);
+                        to_delete.push_back(m_);
                     }
                 }
             }
+            for (auto v : to_delete)
+                closed.erase(v);
             if (flag) continue;
             if (front_map[m->state] < m->cost) {
                 flag = true;
             }
+            if (flag) continue;
             front_map[m->state] = m->cost;
             m->f = m->cost + heuristic_function[m->state];
             open.push(m);
@@ -318,63 +320,6 @@ void astar() {
 
     for (auto n : all_nodes)
         n->~Node();
-}
-
-void Dijkstra() {
-
-    std::map<std::string, std::map<std::string, double>> Dijkstra_map;
-
-    for (auto it = goal_states.begin(); it != goal_states.end(); it++) {
-        std::string goal_state = *it;
-        std::map<std::string, double> dist;
-        std::map<std::string, bool> finished;
-
-        auto comparator = [] (std::pair<std::string, double> a, std::pair<std::string, double> b) {
-            return (a.second > b.second);
-        };
-        std::priority_queue<std::pair<std::string, double>, std::vector<std::pair<std::string, double>>, decltype(comparator)> Q(comparator);
-
-        for (auto x : states) {
-            dist[x] = DBL_MAX;
-        }
-
-        dist[goal_state] = 0;
-        Q.push({goal_state, 0});
-
-        while (Q.size() > 0) {
-            auto u = Q.top();
-            Q.pop();
-            if (finished[u.first] && dist[u.first] < u.second) continue;
-            finished[u.first] = true;
-            dist[u.first] = u.second;
-            for (auto neighbor : successor_function[u.first]) {
-                auto v = neighbor.first;
-                auto d = neighbor.second;
-                double alt = u.second + d;
-                if (alt < dist[v]) {
-                    Q.push({v, alt});
-                }
-            }
-        }
-
-        Dijkstra_map[goal_state] = dist;
-    }
-
-    for (auto x : states) {
-        distances[x] = DBL_MAX;
-    }
-
-    for (auto it = Dijkstra_map.begin(); it != Dijkstra_map.end(); it++) {
-        auto x = (*it).second;
-        for (auto pair : x) {
-            auto y = pair.first;
-            auto z = pair.second;
-            if (distances[y] > z) {
-                distances[y] = z;
-            }
-        }
-    }
-
 }
 
 void calculate_distance_ucs() {
