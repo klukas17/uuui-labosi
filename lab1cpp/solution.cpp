@@ -11,12 +11,6 @@
 #include <float.h>
 #include "Node.h"
 
-/*
- * TODO:
- *      find all mistakes with autograder
- *      improve check-optimistic
- */
-
 std::string alg = "", ss = "", h = "";
 bool check_optimistic = false, check_consistent = false, ss_provided = false, h_provided = false;
 

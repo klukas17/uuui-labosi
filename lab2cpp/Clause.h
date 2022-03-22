@@ -7,12 +7,13 @@
 
 #include <set>
 #include <string>
+#include <vector>
 
 class Clause {
 public:
     std::set<std::string> literals;
     std::set<std::string> literals_negated;
-    std::set<Clause*> parent_clausules;
+    std::vector<Clause*> parent_clausules;
     int index;
 
     Clause();
