@@ -54,21 +54,21 @@ void read_arguments(int argc, char* argv[]) {
 }
 
 void read_ss() {
-    std::ifstream input(ss);
-    std::string line;
+    std::ifstream in(ss);
+    std::string line_read;
     bool initial = false, goal = false;
 
-    for (;getline(input, line);) {
+        for (;getline(in, line_read);) {
 
-        if (line[0] == '#') continue;
+        if (line_read[0] == '#') continue;
 
         if (!initial) {
-            initial_state = line;
+            initial_state = line_read;
             initial = true;
             continue;
         }
         else if (!goal) {
-            std::istringstream iss(line);
+            std::istringstream iss(line_read);
             std::string s;
             while (getline(iss, s, ' '))
                 goal_states.insert(s);
@@ -78,15 +78,15 @@ void read_ss() {
 
         else {
             std::string left_side, right_side;
-            int pos = line.find(':');
-            left_side = line.substr(0, pos);
+            int pos = line_read.find(':');
+            left_side = line_read.substr(0, pos);
             states.insert(left_side);
-            right_side = line.substr(pos + 1, line.size() - pos);
+            right_side = line_read.substr(pos + 1, line_read.size() - pos);
             if (right_side.size() > 0)
                 right_side = right_side.substr(1, right_side.size());
-            std::stringstream stream(right_side);
+            std::stringstream s(right_side);
             std::string segment;
-            while (getline(stream, segment, ' ')) {
+            while (getline(s, segment, ' ')) {
                 std::string state, cost;
                 int breaking_point = segment.find(',');
                 state = segment.substr(0, breaking_point);
@@ -100,14 +100,14 @@ void read_ss() {
 }
 
 void read_h() {
-    std::ifstream input(h);
-    std::string line;
-    for (;getline(input, line);) {
-        if (line[0] == '#') continue;
+    std::ifstream in(h);
+    std::string line_read;
+    for (;getline(in, line_read);) {
+        if (line_read[0] == '#') continue;
         std::string left_side, right_side;
-        int pos = line.find(':');
-        left_side = line.substr(0, pos);
-        right_side = line.substr(pos + 2, line.size() - pos);
+        int pos = line_read.find(':');
+        left_side = line_read.substr(0, pos);
+        right_side = line_read.substr(pos + 2, line_read.size() - pos);
         heuristic_function[left_side] = std::stod(right_side);
     }
 }
@@ -193,7 +193,7 @@ void bfs() {
     print_results(found, visited, result);
 
     for (auto n : all_nodes)
-        n->~Node();
+        delete n;
 }
 
 double ucs(bool print, std::string start) {
@@ -240,7 +240,7 @@ double ucs(bool print, std::string start) {
     }
 
     for (auto n : all_nodes)
-        n->~Node();
+        delete n;
 
     return ret_val;
 }
@@ -273,7 +273,7 @@ void astar() {
     open.push(start_node);
 
     while (open.size() > 0) {
-        Node *n = open.top();
+        Node* n = open.top();
         open.pop();
 
         if (front_map[n->state] < n->cost) continue;
@@ -291,20 +291,20 @@ void astar() {
         for (std::pair<std::string, double> u : successor_function[n->state]) {
             Node *m = new Node(u.first, n, n->cost + u.second);
             all_nodes.push_back(m);
-            bool flag = false;
+            bool flag = true;
             for (auto pair: closed[m->state]) {
                 Node *m_ = pair.first;
                 if (!closed[m_->state][m_]) continue;
                 if (m_->state == m->state) {
                     if (m_->cost < m->cost) {
-                        flag = true;
+                        flag = false;
                         break;
                     } else {
                         closed[m_->state][m_] = false;
                     }
                 }
             }
-            if (flag) continue;
+            if (!flag) continue;
             if (front_map[m->state] < m->cost) continue;
             front_map[m->state] = m->cost;
             m->f = m->cost + heuristic_function[m->state];
@@ -316,7 +316,7 @@ void astar() {
     print_results(found, visited, result);
 
     for (auto n : all_nodes)
-        n->~Node();
+        delete n;
 }
 
 void calculate_distance_ucs() {

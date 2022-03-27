@@ -2,8 +2,8 @@
 // Created by mihael on 3/12/22.
 //
 
-#ifndef LAB1CPP_BFS_NODE_H
-#define LAB1CPP_BFS_NODE_H
+#ifndef LAB1CPP_NODE_H
+#define LAB1CPP_NODE_H
 
 #include <iostream>
 
@@ -23,4 +23,4 @@ public:
 };
 
 
-#endif //LAB1CPP_BFS_NODE_H
+#endif //LAB1CPP_NODE_H
