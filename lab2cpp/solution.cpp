@@ -123,11 +123,21 @@ void read_commands() {
 
 void resolution_print_results_true() {
 
+    std::vector<Clause*> derived_clauses;
+
     while (final_clauses.size() > 0) {
         auto x = final_clauses.top();
         final_clauses.pop();
-        x->print_clause(true);
+        if (x->parent_clauses.size() == 0)
+            x->print_clause(true);
+        else
+            derived_clauses.push_back(x);
     }
+
+    std::cout << "===============" << std::endl;
+
+    for (auto x : derived_clauses)
+        x->print_clause(true);
     std::cout << "===============" << std::endl;
 }
 
