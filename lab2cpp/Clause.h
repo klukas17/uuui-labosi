@@ -13,11 +13,12 @@ class Clause {
 public:
     std::set<std::string> literals;
     std::set<std::string> literals_negated;
-    std::vector<Clause*> parent_clausules;
-    int index;
+    std::vector<Clause*> parent_clauses;
 
     Clause();
     ~Clause();
+
+    void print_clause(bool is_clause);
 };
 
 
