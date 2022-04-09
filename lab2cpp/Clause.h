@@ -15,10 +15,13 @@ public:
     std::set<std::string> literals_negated;
     std::vector<Clause*> parent_clauses;
 
+    bool printed = false;
+    bool negated_result;
+
     Clause();
     ~Clause();
 
-    void print_clause(bool is_clause);
+    void print_clause(bool print_parents);
 };
 
 

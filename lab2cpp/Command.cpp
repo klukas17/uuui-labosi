@@ -3,6 +3,7 @@
 //
 
 #include "Command.h"
+#include "Clause.h"
 
-Command::Command() {}
+Command::Command() : Clause() {}
 Command::~Command() {}

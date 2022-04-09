@@ -30,11 +30,11 @@ void read_clauses() {
     std::ifstream input(clauses_path);
     std::string line;
     Clause* last_clause = nullptr;
-    for (;getline(input, line);) {
+    while (getline(input, line)) {
 
         if (line[0] == '#') continue;
 
-        std::transform(line.begin(), line.end(), line.begin(), [](char c){ return std::tolower(c); });
+        std::transform(line.begin(), line.end(), line.begin(), [](char c){return std::tolower(c);});
 
         testing_clause = line;
 
@@ -75,11 +75,13 @@ void read_clauses() {
         for (std::string literal : literals) {
             Clause* c = new Clause();
             c->literals_negated.insert(literal);
+            c->negated_result = true;
             set_of_support.insert(c);
         }
         for (std::string literal_negated : literals_negated) {
             Clause* c = new Clause();
             c->literals.insert(literal_negated);
+            c->negated_result = true;
             set_of_support.insert(c);
         }
 
@@ -95,9 +97,9 @@ void read_commands() {
     std::ifstream input(commands_path);
     std::string line;
 
-    for (;getline(input, line);) {
+    while (getline(input, line)) {
         if (line[0] == '#') continue;
-        std::transform(line.begin(), line.end(), line.begin(), [](char c){ return std::tolower(c); });
+        std::transform(line.begin(), line.end(), line.begin(), [](char c){return std::tolower(c);});
 
         std::istringstream iss(line);
         std::string s;
@@ -124,20 +126,40 @@ void read_commands() {
 void resolution_print_results_true() {
 
     std::vector<Clause*> derived_clauses;
+    std::vector<Clause*> negated_result;
 
     while (final_clauses.size() > 0) {
         auto x = final_clauses.top();
         final_clauses.pop();
-        if (x->parent_clauses.size() == 0)
-            x->print_clause(true);
+        if (x->parent_clauses.size() == 0) {
+            if (!x->printed) {
+                if (!x->negated_result) {
+                    x->print_clause(true);
+                    x->printed = true;
+                }
+                else {
+                    negated_result.push_back(x);
+                }
+            }
+        }
         else
             derived_clauses.push_back(x);
+    }
+
+    for (auto x : negated_result) {
+        if (!x->printed) {
+            x->print_clause(true);
+            x->printed = true;
+        }
     }
 
     std::cout << "===============" << std::endl;
 
     for (auto x : derived_clauses)
-        x->print_clause(true);
+        if (!x->printed) {
+            x->print_clause(true);
+            x->printed = true;
+        }
     std::cout << "===============" << std::endl;
 }
 
@@ -208,9 +230,8 @@ void resolution() {
                 std::set<std::string> tautology_check_set;
                 std::set_intersection(new_clause->literals.begin(), new_clause->literals.end(), new_clause->literals_negated.begin(), new_clause->literals_negated.end(), std::inserter(tautology_check_set, tautology_check_set.begin()));
 
-                if (tautology_check_set.size() > 0) {
+                if (tautology_check_set.size() > 0)
                     delete new_clause;
-                }
 
                 else {
 
@@ -266,6 +287,9 @@ void resolution() {
             }
         }
 
+        for (Clause* clause : set_of_support)
+            checked_clauses.insert(clause);
+
         std::vector<Clause*> clauses_to_remove_from_new_clauses;
         for (Clause* new_clause : new_clauses) {
             for (Clause* c : checked_clauses) {
@@ -287,15 +311,12 @@ void resolution() {
                 }
             }
         }
-        for (Clause* clause : clauses_to_remove_from_new_clauses) new_clauses.erase(clause);
+        for (Clause* clause : clauses_to_remove_from_new_clauses)
+            new_clauses.erase(clause);
 
         if (new_clauses.size() == 0) {
             std::cout << "[CONCLUSION]: " << testing_clause << " is unknown" << std::endl;
             return;
-        }
-
-        for (Clause* clause : set_of_support) {
-            checked_clauses.insert(clause);
         }
 
         set_of_support = new_clauses;
@@ -355,11 +376,13 @@ void cooking() {
             for (std::string literal : literals) {
                 Clause* c = new Clause();
                 c->literals_negated.insert(literal);
+                c->negated_result = true;
                 set_of_support.insert(c);
             }
             for (std::string literal_negated : literals_negated) {
                 Clause* c = new Clause();
                 c->literals.insert(literal_negated);
+                c->negated_result = true;
                 set_of_support.insert(c);
             }
 
@@ -367,6 +390,8 @@ void cooking() {
 
             resolution();
 
+            for (Clause* clause : clauses)
+                clause->printed = false;
         }
     }
 }
